@@ -55,11 +55,11 @@ const RODAPE = `
   </div>
 </footer>`;
 
-// Lê a data de publicação do JSON-LD (ex.: "2026-10-10T13:53:53-03:00")
-// e devolve no formato dd/mm/aaaa, usando a data local já escrita no texto.
+// Lê a data de publicação do JSON-LD (ex.: "2026-10-11T09:00:00-03:00", a data
+// agendada na planilha) e devolve "dd/mm/aaaa às HHh", o mesmo formato da grade.
 export function dataPublicacao(html) {
-  const m = html.match(/"datePublished"\s*:\s*"(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[3]}/${m[2]}/${m[1]}` : null;
+  const m = html.match(/"datePublished"\s*:\s*"(\d{4})-(\d{2})-(\d{2})T(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]} às ${m[4]}h` : null;
 }
 
 export function aplicarLayout(html, { comData = true, folhas = '' } = {}) {

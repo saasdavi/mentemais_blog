@@ -72,6 +72,25 @@ def data_brasilia():
     return datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=-3))).isoformat(timespec='seconds')
 
 
+def data_agendada(linha):
+    """Data e hora da planilha (Data dd/mm/aaaa, Horário 09h) como ISO de Brasília.
+
+    É a data que a grade mostra e a que decide quando o artigo entra no ar, então
+    o artigo usa a mesma data no datePublished (e na página)."""
+    try:
+        dia, mes, ano = linha['Data'].strip().split('/')
+        hora = int(linha['Horário'].strip().rstrip('hH'))
+    except (KeyError, ValueError, AttributeError) as e:
+        raise RuntimeError(f'data ou horário inválido na planilha: {e}')
+    return f'{ano}-{mes.zfill(2)}-{dia.zfill(2)}T{hora:02d}:00:00-03:00'
+
+
+def fixar_datas(html, agenda):
+    """Troca datePublished e dateModified do JSON-LD pela data agendada."""
+    html = re.sub(r'("datePublished"\s*:\s*")[^"]*(")', lambda m: m.group(1) + agenda + m.group(2), html)
+    return re.sub(r'("dateModified"\s*:\s*")[^"]*(")', lambda m: m.group(1) + agenda + m.group(2), html)
+
+
 PADRAO_IMG_PEXELS = re.compile(r'<img\b[^>]*\bdata-pexels="([^"]+)"[^>]*>', re.I)
 
 
@@ -136,8 +155,9 @@ def validar_imagens(html):
     return problemas
 
 
-def validar_artigo(html):
-    """Lista o que impede publicar o artigo. Lista vazia = aprovado."""
+def validar_artigo(html, agenda=None):
+    """Lista o que impede publicar o artigo. Lista vazia = aprovado.
+    `agenda` é a data da planilha; sem ela, vale a data de hoje."""
     problemas = []
     corpo = re.sub(r'<script.*?</script>|<style.*?</style>', ' ', html, flags=re.S | re.I)
     palavras = len(html_lib.unescape(re.sub(r'<[^>]+>', ' ', corpo)).split())
@@ -149,10 +169,10 @@ def validar_artigo(html):
         problemas.append('assinatura com credenciais')
     if 'example.com' in html or 'SUA_CHAVE' in html:
         problemas.append('URL ou chave de exemplo')
-    hoje = data_brasilia()[:10]
+    esperada = agenda[:10] if agenda else data_brasilia()[:10]
     m = re.search(r'"datePublished"\s*:\s*"([^"]+)"', html)
-    if not m or m.group(1)[:10] != hoje:
-        problemas.append(f'datePublished diferente de {hoje}')
+    if not m or m.group(1)[:10] != esperada:
+        problemas.append(f'datePublished diferente de {esperada}')
     # Regras de SEO e estrutura do prompt
     if len(re.findall(r'<h1[\s>]', html, flags=re.I)) != 1:
         problemas.append('precisa de exatamente 1 H1')
@@ -416,11 +436,12 @@ def montar_reescrita(prompt, html_anterior, problemas, analise_anterior=None):
             + "ARTIGO REPROVADO:\n" + (html_anterior or '(sem HTML válido na resposta anterior)'))
 
 
-def gerar_validado(prompt, chave, modelos, rodadas):
+def gerar_validado(prompt, chave, modelos, rodadas, agenda=None):
     """Gera, valida e, se reprovar, pede a correção com a lista de problemas.
 
     Para cada modelo: até `rodadas` reescritas. Só passa ao próximo modelo depois de
-    esgotar as reescritas. Devolve (html, análise)."""
+    esgotar as reescritas. Devolve (html, análise). Com `agenda`, as datas do artigo
+    são a data da planilha, não a de geração."""
     ultimo_erro = None
     for modelo in modelos:
         anterior, problemas, analise_ant = None, None, None
@@ -444,10 +465,12 @@ def gerar_validado(prompt, chave, modelos, rodadas):
                 print(f'↪️ {modelo} reprovado: {e}')
                 ultimo_erro = e
                 continue
+            if agenda:
+                html = fixar_datas(html, agenda)
             chave_pexels = os.environ.get('PEXELS_API_KEY', '').strip()
             if chave_pexels:
                 html = inserir_imagens_pexels(html, chave_pexels)
-            problemas = validar_artigo(html) + validar_imagens(html) + checar_fontes(html)
+            problemas = validar_artigo(html, agenda) + validar_imagens(html) + checar_fontes(html)
             nota = problema_nota(analise)
             if nota:
                 problemas.append(nota)
@@ -496,7 +519,7 @@ def main():
             lista = MODELOS_BYTEPLUS if PROVEDOR == 'byteplus' else [modelo]
             if PROVEDOR == 'gemini' and (os.environ.get('ANTHROPIC_API_KEY') or '').strip():
                 lista.append(ANTHROPIC_MODEL)  # Gemini primeiro; Claude só se ele falhar
-            html, analise = gerar_validado(prompt, chave, lista, RODADAS_REESCRITA)
+            html, analise = gerar_validado(prompt, chave, lista, RODADAS_REESCRITA, data_agendada(linha))
         except (requests.RequestException, RuntimeError) as e:
             print(f'⚠️ Falha em {base}: {e}')
             falhas += 1
