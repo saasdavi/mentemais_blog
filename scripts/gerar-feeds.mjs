@@ -1,6 +1,6 @@
 // Gera sitemap.xml, rss.xml e robots.txt no build.
 // Os artigos são HTML prontos em dados/saida/html (copiados para a raiz do dist),
-// então os metadados (título, descrição e data) são lidos do próprio HTML.
+// então os metadados (título, descrição, data e imagem de capa) são lidos do próprio HTML.
 import { readdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 
@@ -21,6 +21,28 @@ function descricaoDoTexto(html) {
   return texto.slice(0, 200).replace(/\s+\S*$/, '') + '…';
 }
 
+// Imagem de capa: og:image (qualquer ordem de atributos) ou, se não houver, a primeira <img>.
+// Devolve URL absoluta, porque o Pinterest não aceita caminho relativo.
+function imagemDoHtml(html) {
+  const og =
+    (html.match(/<meta[^>]+property="og:image"[^>]*content="([^"]+)"/i) ||
+      html.match(/<meta[^>]+content="([^"]+)"[^>]*property="og:image"/i) ||
+      [])[1];
+  const img = og || (html.match(/<img[^>]+src="([^"]+)"/i) || [])[1];
+  if (!img || img.startsWith('data:')) return '';
+  try {
+    return new URL(img, SITE_URL + '/').href;
+  } catch {
+    return '';
+  }
+}
+
+function tipoDaImagem(url) {
+  if (/\.png(\?|$)/i.test(url)) return 'image/png';
+  if (/\.webp(\?|$)/i.test(url)) return 'image/webp';
+  return 'image/jpeg';
+}
+
 function lerArtigos(origem) {
   return readdirSync(origem)
     .filter((f) => /^art-.*\.html$/.test(f))
@@ -30,7 +52,8 @@ function lerArtigos(origem) {
       const desc =
         (html.match(/<meta name="description" content="([^"]*)"/) || [])[1] || descricaoDoTexto(html);
       const data = (html.match(/"datePublished":\s*"(\d{4}-\d{2}-\d{2})"/) || [])[1] || hoje();
-      return { url: `/${arquivo}`, titulo, desc, data };
+      const imagem = imagemDoHtml(html);
+      return { url: `/${arquivo}`, titulo, desc, data, imagem };
     })
     .sort((a, b) => b.data.localeCompare(a.data));
 }
@@ -70,10 +93,12 @@ function gerarSitemap(destino, paginas) {
 
 function gerarRss(destino, artigos) {
   const itens = artigos
-    .map(
-      (a) =>
-        `    <item>\n      <title>${esc(a.titulo)}</title>\n      <link>${esc(SITE_URL + a.url)}</link>\n      <guid>${esc(SITE_URL + a.url)}</guid>\n      <description>${esc(a.desc)}</description>\n      <pubDate>${new Date(a.data + 'T12:00:00Z').toUTCString()}</pubDate>\n    </item>`,
-    )
+    .map((a) => {
+      const enclosure = a.imagem
+        ? `\n      <enclosure url="${esc(a.imagem)}" type="${tipoDaImagem(a.imagem)}" />`
+        : '';
+      return `    <item>\n      <title>${esc(a.titulo)}</title>\n      <link>${esc(SITE_URL + a.url)}</link>\n      <guid>${esc(SITE_URL + a.url)}</guid>\n      <description>${esc(a.desc)}</description>${enclosure}\n      <pubDate>${new Date(a.data + 'T12:00:00Z').toUTCString()}</pubDate>\n    </item>`;
+    })
     .join('\n');
   writeFileSync(
     path.join(destino, 'rss.xml'),
