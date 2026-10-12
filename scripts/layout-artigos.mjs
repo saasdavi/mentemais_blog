@@ -27,6 +27,9 @@ const CABECALHO = `
   </div>
 </header>`;
 
+// Autodescoberta do feed: leitores de RSS e navegadores encontram o rss.xml pela <head>
+const LINK_RSS = '<link rel="alternate" type="application/rss+xml" title="Mente Leve — RSS" href="/rss.xml" />';
+
 const RODAPE = `
 <footer ${MARCA} class="mt-24 border-t border-brand-100 bg-brand-900 text-brand-100">
   <div class="mx-auto grid max-w-7xl gap-10 px-5 py-14 lg:grid-cols-[1.4fr_1fr_1fr] lg:px-8">
@@ -40,6 +43,7 @@ const RODAPE = `
       <p class="text-xs font-semibold uppercase tracking-widest text-sun-400">Blog</p>
       <ul class="mt-4 space-y-2 text-sm">
         ${NAV.map((item) => `<li><a class="hover:text-white" href="${item.href}">${item.label}</a></li>`).join('')}
+        <li><a class="hover:text-white" href="/rss.xml">Feed RSS</a></li>
       </ul>
     </div>
     <div>
@@ -68,8 +72,8 @@ export function aplicarLayout(html, { comData = true, folhas = '' } = {}) {
 
   let saida = html;
 
-  // 0. CSS do site (mesmos arquivos usados pela home no build)
-  if (folhas) saida = saida.replace(/<\/head>/i, folhas + '\n</head>');
+  // 0. CSS do site (mesmos arquivos usados pela home no build) e link do feed RSS
+  saida = saida.replace(/<\/head>/i, (folhas ? folhas + '\n' : '') + LINK_RSS + '\n</head>');
 
   // 1. Cabeçalho e menu logo após a abertura do <body>
   saida = saida.replace(/<body[^>]*>/i, (tag) => tag + CABECALHO);

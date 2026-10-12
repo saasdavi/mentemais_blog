@@ -13,13 +13,22 @@ const esc = (s) =>
 
 const hoje = () => new Date().toISOString().slice(0, 10);
 
+// Sem <meta name="description">, usa o primeiro parágrafo do texto (até ~200 caracteres)
+function descricaoDoTexto(html) {
+  const paragrafo = (html.match(/<p[^>]*>([\s\S]*?)<\/p>/i) || [])[1] || '';
+  const texto = paragrafo.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+  if (texto.length <= 200) return texto;
+  return texto.slice(0, 200).replace(/\s+\S*$/, '') + '…';
+}
+
 function lerArtigos(origem) {
   return readdirSync(origem)
     .filter((f) => /^art-.*\.html$/.test(f))
     .map((arquivo) => {
       const html = readFileSync(path.join(origem, arquivo), 'utf8');
       const titulo = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || arquivo;
-      const desc = (html.match(/<meta name="description" content="([^"]*)"/) || [])[1] || '';
+      const desc =
+        (html.match(/<meta name="description" content="([^"]*)"/) || [])[1] || descricaoDoTexto(html);
       const data = (html.match(/"datePublished":\s*"(\d{4}-\d{2}-\d{2})"/) || [])[1] || hoje();
       return { url: `/${arquivo}`, titulo, desc, data };
     })
@@ -68,7 +77,7 @@ function gerarRss(destino, artigos) {
     .join('\n');
   writeFileSync(
     path.join(destino, 'rss.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0">\n  <channel>\n    <title>${esc(SITE_NOME)}</title>\n    <link>${SITE_URL}</link>\n    <description>${esc(SITE_DESCRICAO)}</description>\n    <language>pt-BR</language>\n${itens}\n  </channel>\n</rss>\n`,
+    `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n  <channel>\n    <title>${esc(SITE_NOME)}</title>\n    <link>${SITE_URL}</link>\n    <description>${esc(SITE_DESCRICAO)}</description>\n    <language>pt-BR</language>\n    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n    <atom:link href="${SITE_URL}/rss.xml" rel="self" type="application/rss+xml" />\n${itens}\n  </channel>\n</rss>\n`,
   );
 }
 
