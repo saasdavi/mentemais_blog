@@ -24,6 +24,7 @@ const NAV = [
     <meta name="generator" content={Astro.generator} />
     <title>{title} — Mente Leve</title>
     <meta name="description" content={description || 'Blog Mente Leve: artigos sobre saúde mental e bem-estar'} />
+    <link rel="alternate" type="application/rss+xml" title="Mente Leve — RSS" href="/rss.xml" />
   </head>
   <body class="min-h-screen">
     <header class="sticky top-0 z-40 border-b border-brand-100/80 bg-paper/85 backdrop-blur-md">
@@ -60,6 +61,7 @@ const NAV = [
           <p class="text-xs font-semibold uppercase tracking-widest text-sun-400">Blog</p>
           <ul class="mt-4 space-y-2 text-sm">
             {NAV.map(item => <li><a class="hover:text-white" href={item.href}>{item.label}</a></li>)}
+            <li><a class="hover:text-white" href="/rss.xml">Feed RSS</a></li>
           </ul>
         </div>
         <div>
