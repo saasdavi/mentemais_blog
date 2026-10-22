@@ -1,0 +1,37 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { listarPublicados } from '../../lib/notion-artigos.js';
+import { corpoDoArtigo } from '../../lib/notion-html.js';
+
+// Gera uma página por artigo publicado no Notion. Sem as chaves, não gera nenhuma.
+export async function getStaticPaths() {
+  if (!process.env.NOTION_API_KEY || !process.env.NOTION_ARTIGOS_DB) return [];
+  const artigos = await listarPublicados();
+  return artigos
+    .filter(a => a.slug)
+    .map(a => ({ params: { slug: a.slug }, props: { artigo: a } }));
+}
+
+const { artigo } = Astro.props;
+const corpo = await corpoDoArtigo(artigo.id);
+
+// Crédito da capa vem do Notion como JSON: {author, source, url, ...}
+let credito = '';
+try {
+  const c = JSON.parse(artigo.capaCredito || '{}');
+  credito = [c.author, c.source].filter(Boolean).join(' · ');
+} catch {
+  credito = '';
+}
+---
+
+<Layout title={artigo.titulo} description={artigo.descricao}>
+  <article class="mx-auto max-w-3xl px-5 py-16">
+    <h1 class="mb-6 text-3xl font-semibold">{artigo.titulo}</h1>
+    {artigo.capaUrl && (
+      <img src={artigo.capaUrl} alt={artigo.altCapa || artigo.titulo} class="mb-8 w-full rounded-xl object-cover" />
+    )}
+    <div class="prose max-w-none leading-relaxed" set:html={corpo} />
+    {credito && <p class="mt-10 text-sm text-slate-500">Capa: {credito}</p>}
+  </article>
+</Layout>
