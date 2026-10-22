@@ -1,5 +1,5 @@
 ---
-import Layout from '../../layouts/Layout.astro';
+import PremiumLayout from '../../layouts/PremiumLayout.astro';
 import { listarPublicados } from '../../lib/notion-artigos.js';
 import { corpoDoArtigo } from '../../lib/notion-html.js';
 
@@ -16,22 +16,60 @@ const { artigo } = Astro.props;
 const corpo = await corpoDoArtigo(artigo.id);
 
 // Crédito da capa vem do Notion como JSON: {author, source, url, ...}
-let credito = '';
+let credito = { texto: '', url: '' };
 try {
   const c = JSON.parse(artigo.capaCredito || '{}');
-  credito = [c.author, c.source].filter(Boolean).join(' · ');
+  credito = {
+    texto: [c.author, c.source].filter(Boolean).join(' · '),
+    url: c.url || '',
+  };
 } catch {
-  credito = '';
+  credito = { texto: '', url: '' };
 }
+
+// Data como no restante do blog: 21/10/2026
+const [y, m, d] = (artigo.data || '').split('-');
+const dataBr = y ? `${d}/${m}/${y}` : '';
 ---
 
-<Layout title={artigo.titulo} description={artigo.descricao}>
-  <article class="mx-auto max-w-3xl px-5 py-16">
-    <h1 class="mb-6 text-3xl font-semibold">{artigo.titulo}</h1>
+<PremiumLayout title={artigo.titulo} description={artigo.descricao}>
+  <article class="artigo">
+    <h1>{artigo.titulo}</h1>
+    {dataBr && <p class="data">Publicado em {dataBr}</p>}
     {artigo.capaUrl && (
-      <img src={artigo.capaUrl} alt={artigo.altCapa || artigo.titulo} class="mb-8 w-full rounded-xl object-cover" />
+      <figure>
+        <img src={artigo.capaUrl} alt={artigo.altCapa || artigo.titulo} loading="lazy" width="940" height="650" />
+        {credito.texto && (
+          <figcaption>
+            Foto por {credito.url ? <a href={credito.url} target="_blank" rel="noopener">{credito.texto}</a> : credito.texto}
+          </figcaption>
+        )}
+      </figure>
     )}
-    <div class="prose max-w-none leading-relaxed" set:html={corpo} />
-    {credito && <p class="mt-10 text-sm text-slate-500">Capa: {credito}</p>}
+    <div class="corpo" set:html={corpo} />
   </article>
-</Layout>
+
+  <style is:global>
+    .artigo {
+      font-family: Georgia, serif;
+      color: #222;
+      line-height: 1.7;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+    .artigo h1 { color: #006400; font-size: 2rem; line-height: 1.25; margin-bottom: 0.4em; }
+    .artigo .data { color: #666; font-size: 0.9rem; margin-bottom: 1.2em; }
+    .artigo h2 { color: #006400; font-size: 1.5rem; margin-top: 2.2em; }
+    .artigo h3 { color: #004d00; font-size: 1.2rem; margin-top: 1.6em; }
+    .artigo p { margin: 0 0 1em 0; }
+    .artigo strong { color: #006400; }
+    .artigo a { color: #006400; }
+    .artigo figure { margin: 1.2em 0; }
+    .artigo img { display: block; width: 100%; max-width: 100%; height: auto; border-radius: 6px; }
+    .artigo figcaption { font-size: 0.85rem; color: #666; margin-top: 0.4em; }
+    .artigo ul, .artigo ol { margin: 0 0 1em 1.4em; }
+    .artigo blockquote { border-left: 4px solid #006400; padding: 10px 14px; background: #f3faf3; margin: 1.5em 0; }
+    .artigo hr { border: 0; border-top: 1px solid #d6e6d6; margin: 2em 0; }
+  </style>
+</PremiumLayout>
