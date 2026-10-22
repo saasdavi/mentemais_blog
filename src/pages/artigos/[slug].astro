@@ -1,5 +1,5 @@
 ---
-import Layout from '../../layouts/Layout.astro';
+import PremiumLayout from '../../layouts/PremiumLayout.astro';
 import { listarPublicados } from '../../lib/notion-artigos.js';
 import { corpoDoArtigo } from '../../lib/notion-html.js';
 
@@ -32,7 +32,7 @@ const [y, m, d] = (artigo.data || '').split('-');
 const dataBr = y ? `${d}/${m}/${y}` : '';
 ---
 
-<Layout title={artigo.titulo} description={artigo.descricao}>
+<PremiumLayout title={artigo.titulo} description={artigo.descricao}>
   <article class="artigo">
     <h1>{artigo.titulo}</h1>
     {dataBr && <p class="data">Publicado em {dataBr}</p>}
@@ -72,4 +72,4 @@ const dataBr = y ? `${d}/${m}/${y}` : '';
     .artigo blockquote { border-left: 4px solid #006400; padding: 10px 14px; background: #f3faf3; margin: 1.5em 0; }
     .artigo hr { border: 0; border-top: 1px solid #d6e6d6; margin: 2em 0; }
   </style>
-</Layout>
+</PremiumLayout>
