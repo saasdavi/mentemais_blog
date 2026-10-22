@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { listarPublicados } from './notion-artigos.js';
 
 const CSV_PATH = path.join(process.cwd(), 'dados', 'calendario_blog_1_ano.csv');
 const ARTICLES_DIR = path.join(process.cwd(), 'dados', 'saida', 'html');
@@ -91,8 +92,33 @@ function metaDescription(file) {
 }
 
 // Retorna { published, upcoming, temas } prontos para a página
+// Artigos publicados no Notion (status Publicado). Sem NOTION_API_KEY, não há nenhum.
+async function linhasDoNotion() {
+  if (!process.env.NOTION_API_KEY || !process.env.NOTION_ARTIGOS_DB) return [];
+  const artigos = await listarPublicados();
+  // Notion devolve a data como AAAA-MM-DD; aqui vira data local, como as da planilha
+  const dataLocal = iso => {
+    const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+  return artigos
+    .filter(a => a.slug && a.data)
+    .map(a => ({
+      titulo: a.titulo,
+      tema: a.categoria,
+      data: a.data,
+      horario: '',
+      time: dataLocal(a.data).getTime(),
+      publicarEm: dataLocal(a.data).getTime(),
+      slug: `/artigos/${a.slug}/`,
+      descricao: a.descricao,
+      imagemPropria: a.capaUrl && a.capaUrl.startsWith('http') ? a.capaUrl : null,
+      imagem: null,
+    }));
+}
+
 export async function loadArticles() {
-  const rows = readRows().map(row => {
+  const rows = [...readRows().map(row => {
     const file = path.basename(row['Artigo_Arquivo_HTML'] || '');
     const hasFile = file && file.toLowerCase() !== 'nan' && fs.existsSync(path.join(ARTICLES_DIR, file));
     const propria = row['Imagem_Miniatura'];
@@ -109,7 +135,7 @@ export async function loadArticles() {
       imagemPropria: propria && propria.startsWith('http') ? propria : null,
       imagem: null,
     };
-  });
+  }), ...(await linhasDoNotion())];
 
   // Só entra em 'publicados' quando a data e hora da planilha já chegaram
   const agora = Date.now();
