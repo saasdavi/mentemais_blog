@@ -7,6 +7,8 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, 'https://www.mentemais.blog').href;
+const metaDescription = description || 'Blog Mente Leve: artigos sobre saúde mental e bem-estar';
 const NAV = [
   { href: '/', label: 'Início' },
   { href: '/sobre', label: 'Sobre' },
@@ -23,7 +25,15 @@ const NAV = [
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title} — Mente Leve</title>
-    <meta name="description" content={description || 'Blog Mente Leve: artigos sobre saúde mental e bem-estar'} />
+    <meta name="description" content={metaDescription} />
+    <link rel="canonical" href={canonical} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Mente Leve" />
+    <meta property="og:title" content={`${title} — Mente Leve`} />
+    <meta property="og:description" content={metaDescription} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="alternate" type="application/rss+xml" title="Mente Leve — RSS" href="/rss.xml" />
   </head>
   <body class="min-h-screen">
