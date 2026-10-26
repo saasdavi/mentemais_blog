@@ -5,6 +5,9 @@ interface Props {
 const { article } = Astro.props;
 const upcoming = !article.slug;
 const Tag = upcoming ? 'article' : 'a';
+// Notion entrega a data em ISO (2026-10-24); o card mostra DD/MM/AAAA
+const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(article.data ?? '');
+const dataExibida = iso ? `${iso[3]}/${iso[2]}/${iso[1]}` : (article.data ?? '');
 ---
 
 <Tag
@@ -31,7 +34,7 @@ const Tag = upcoming ? 'article' : 'a';
   <div class="flex flex-1 flex-col p-6">
     <div class="flex items-center justify-between gap-3 text-xs">
       <span class="rounded-full bg-brand-50 px-3 py-1 font-semibold text-brand-600">{article.tema}</span>
-      <span class="text-ink-500 whitespace-nowrap">{article.data} · {article.horario}</span>
+      <span class="text-ink-500 whitespace-nowrap">{dataExibida}{article.horario && ` · ${article.horario}`}</span>
     </div>
     <h3 class="mt-4 text-xl leading-snug font-semibold text-ink-900 group-hover:text-brand-600 transition">
       {article.titulo}
