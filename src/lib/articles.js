@@ -105,6 +105,7 @@ async function linhasDoNotion() {
     .filter(a => a.slug && a.data)
     .map(a => ({
       titulo: a.titulo,
+      tituloSeo: a.tituloSeo,
       tema: a.categoria,
       data: a.data,
       horario: '',
