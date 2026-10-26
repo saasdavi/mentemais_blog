@@ -1,4 +1,6 @@
-# Mente Leve
+export const prerender = true;
+
+const body = `# Mente Leve
 
 > Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental. Conteúdo educativo, não substitui consulta com profissional de saúde.
 
@@ -20,3 +22,10 @@
 
 - [RSS](https://www.mentemais.blog/rss.xml)
 - [Sitemap](https://www.mentemais.blog/sitemap.xml)
+`;
+
+export function GET() {
+  return new Response(body, {
+    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+  });
+}
