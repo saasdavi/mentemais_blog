@@ -10,6 +10,36 @@ const { published, upcoming, temas } = await loadArticles();
 // Destaque: artigo mais recente publicado; sem publicados, o próximo agendado
 const featured = published[0] ?? upcoming[0];
 const grid = [...published.slice(1), ...upcoming];
+
+// Perguntas da home: aparecem na página e na marcação FAQPage (JSON-LD)
+const perguntas = [
+  {
+    pergunta: 'O que é o Mente Leve?',
+    resposta: 'O Mente Leve é um blog informativo sobre ansiedade, estresse, sono, meditação e bem-estar mental. Os textos são educativos e não substituem consulta com profissional de saúde.',
+  },
+  {
+    pergunta: 'Os artigos substituem um médico ou psicólogo?',
+    resposta: 'Não. Os artigos têm caráter informativo. Para sintomas que persistem ou para avaliação individual, procure um médico, um psicólogo ou uma unidade de saúde do SUS. Em situação de risco, ligue 192 (SAMU).',
+  },
+  {
+    pergunta: 'Quando procurar ajuda para ansiedade ou estresse?',
+    resposta: 'Procure ajuda quando os sintomas duram semanas, atrapalham o trabalho, o sono ou os relacionamentos. Um profissional de saúde pode avaliar a situação e indicar o cuidado mais adequado.',
+  },
+  {
+    pergunta: 'Onde encontro apoio emocional imediato?',
+    resposta: 'O CVV (Centro de Valorização da Vida) atende gratuitamente pelo telefone 188, 24 horas por dia, e também oferece atendimento por outros canais.',
+  },
+];
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: perguntas.map(({ pergunta, resposta }) => ({
+    '@type': 'Question',
+    name: pergunta,
+    acceptedAnswer: { '@type': 'Answer', text: resposta },
+  })),
+};
 ---
 
 <PremiumLayout
@@ -17,6 +47,12 @@ const grid = [...published.slice(1), ...upcoming];
   description="Blog Mente Leve: artigos informativos sobre ansiedade, estresse, sono, meditação e bem-estar mental, com linguagem simples e fontes confiáveis."
 >
   {featured && <FeaturedHero article={featured} />}
+
+  <section class="mx-auto max-w-3xl px-5 pt-16 lg:px-8">
+    <p class="text-lg leading-relaxed text-ink-700">
+      O Mente Leve reúne artigos informativos sobre ansiedade, estresse, sono e bem-estar mental. Segundo a Organização Mundial da Saúde, mais de 1 bilhão de pessoas no mundo vivem com algum transtorno mental, de acordo com o seu relatório de 2022 (<a class="underline hover:text-brand-600" href="https://www.who.int/news-room/fact-sheets/detail/mental-disorders" rel="noopener" target="_blank">fonte: OMS</a>). Aqui você encontra explicações claras, sinais de alerta e práticas simples para o dia a dia, sempre com fontes e com orientação para procurar ajuda profissional quando necessário.
+    </p>
+  </section>
 
   <section id="artigos" class="mx-auto max-w-7xl px-5 pt-20 lg:px-8">
     <div class="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
@@ -58,6 +94,20 @@ const grid = [...published.slice(1), ...upcoming];
       {published.length} artigo(s) publicado(s) · Conteúdo informativo, não substitui orientação profissional.
     </p>
   </section>
+
+  <section class="mx-auto max-w-3xl px-5 pt-24 lg:px-8" aria-labelledby="perguntas">
+    <h2 id="perguntas" class="text-3xl font-semibold text-ink-900">Perguntas frequentes</h2>
+    <dl class="mt-8 space-y-8">
+      {perguntas.map(({ pergunta, resposta }) => (
+        <div>
+          <dt><h3 class="text-xl font-semibold text-ink-900">{pergunta}</h3></dt>
+          <dd class="mt-2 leading-relaxed text-ink-700">{resposta}</dd>
+        </div>
+      ))}
+    </dl>
+  </section>
+
+  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
 
   <div class="mt-24">
     <PromoBanner />
